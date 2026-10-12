@@ -1,3 +1,5 @@
+<img src="docs/icone.png" width="88" align="right" alt="Ícone do Vale a Corrida: uma estrada em forma de certo">
+
 # Vale a Corrida
 
 Aplicativo Android, de código aberto, para motoristas de aplicativo. Quando chega uma oferta de
@@ -5,22 +7,29 @@ corrida na Uber, na 99 ou no inDrive, ele lê a tela e mostra por cima, antes de
 **quanto a corrida paga por km e por hora**, em verde, amarelo ou vermelho, segundo os valores que
 você mesmo escolheu.
 
+Ele também guarda **os gastos do trabalho** (combustível, lanche, manutenção) e, no fim do mês,
+mostra para onde o dinheiro foi.
+
 Já existem aplicativos que fazem isso, pagos. Este é gratuito, e o código está aqui para qualquer
 pessoa conferir o que ele faz com a permissão que recebe.
 
 <p>
-  <img src="docs/telas/inicio.png" width="270" alt="Tela inicial, com o cartão de exemplo">
-  <img src="docs/telas/simulador.png" width="270" alt="Simulador com uma oferta de mentira">
+  <img src="docs/telas/inicio.png" width="200" alt="Tela inicial, com o cartão de exemplo">
+  <img src="docs/telas/simulador.png" width="200" alt="Simulador com uma oferta de mentira">
+  <img src="docs/telas/gastos.png" width="200" alt="Gastos do mês, com as placas para escolher o tipo de gasto">
+  <img src="docs/telas/relatorio.png" width="200" alt="Relatório do mês: quanto cada tipo de gasto pesou">
 </p>
 
 ## Estado do projeto
 
-Versão 0.1, a primeira. O que foi conferido e o que não foi:
+Versão 0.2. O que foi conferido e o que não foi:
 
-- **Conferido:** o leitor de ofertas e as contas, com 45 testes automáticos; as telas, desenhadas
-  em computador e olhadas uma a uma; o APK, que compila, sai assinado e sem permissão de internet.
-- **Ainda não conferido:** o aplicativo rodando num celular, e a leitura das ofertas de verdade
-  da Uber, da 99 e do inDrive. Os formatos de oferta dos testes foram escritos de memória.
+- **Conferido:** o leitor de ofertas, as contas e o relatório de gastos, com 69 testes
+  automáticos; as telas, desenhadas em computador e olhadas uma a uma; o APK, que compila, sai
+  assinado e sem permissão de internet.
+- **Ainda não conferido:** a leitura das ofertas de verdade da Uber, da 99 e do inDrive. A
+  versão 0.1 já foi instalada num celular, mas ainda não passou por uma corrida real. Os formatos
+  de oferta dos testes foram escritos de memória.
 
 Se você instalar e o cartão não aparecer, isso é esperado nesta fase, e é exatamente o aviso que
 o projeto precisa: veja [Como ajudar](#como-ajudar).
@@ -33,6 +42,10 @@ o projeto precisa: veja [Como ajudar](#como-ajudar).
 - Aceita limites: valor mínimo da corrida, distância máxima até o passageiro, nota mínima.
 - Se você informar o seu custo por km, mostra também quanto sobra.
 - Tem um simulador, para ver o cartão funcionando sem estar online.
+- Guarda os gastos do trabalho, por tipo: combustível, alimentação, manutenção, lavagem, pedágio
+  e vaga, aluguel ou parcela do carro, seguro e impostos, celular e internet.
+- Fecha o mês num relatório: o total, quanto cada tipo pesou, a média nos dias com gasto, o dia
+  mais caro e a comparação com o mês anterior. Dá para compartilhar como texto.
 
 O que ele **não** faz: não aceita nem recusa corridas, e não toca na tela por você.
 
@@ -42,6 +55,8 @@ O que ele **não** faz: não aceita nem recusa corridas, e não toca na tela por
   Nada sai do aparelho. Dá para conferir no `AndroidManifest.xml` e no APK.
 - Só lê a tela enquanto a Uber, a 99 ou o inDrive estão abertos, e só os que você deixar ligados.
 - Guardar leituras para diagnóstico é opcional, vem desligado e fica só no aparelho.
+- Os gastos anotados ficam num arquivo do próprio aparelho. Desinstalar o aplicativo apaga esse
+  arquivo: compartilhe o relatório do mês se quiser guardar.
 
 ## Instalar
 
@@ -57,6 +72,10 @@ tela de outro.
    escolha **Permitir configurações restritas**. Depois repita o passo 2.
 4. Na aba **Valores**, ponha os seus números. Na aba **Simulador**, confira se o cartão aparece.
 
+Se o Android barrar a instalação: no Brasil, a proteção do Google costuma recusar aplicativo que
+usa acessibilidade quando o arquivo vem do navegador ou de uma mensagem. Nesse caso, instale pelo
+computador, com o celular no cabo e a depuração USB ligada: `adb install vale-a-corrida-0.2.0.apk`.
+
 ## Antes de usar
 
 - As plataformas não gostam de aplicativos que leem as ofertas. A Uber já foi à Justiça contra um
@@ -68,8 +87,9 @@ tela de outro.
 ## Como funciona
 
 ```
-nucleo/   Kotlin puro: acha a oferta no texto da tela e faz as contas. Testado sem Android.
-app/      O aplicativo: serviço de acessibilidade, cartão por cima da tela e as telas de ajuste.
+nucleo/   Kotlin puro: acha a oferta no texto da tela, faz as contas e fecha o mês de gastos.
+          Testado sem Android.
+app/      O aplicativo: serviço de acessibilidade, cartão por cima da tela e as telas.
 ```
 
 1. O serviço de acessibilidade é avisado quando um aplicativo de corrida muda a tela.
@@ -105,17 +125,20 @@ Para quem programa, o passo a passo está em [CONTRIBUTING.md](CONTRIBUTING.md).
 
 - Conferir e ajustar o leitor com ofertas de verdade de cada aplicativo.
 - Histórico do dia: corridas vistas, aceitas e quanto renderam.
+- Anotar também os ganhos, para o relatório mostrar o lucro e o custo real por km.
 - Leitura de imagem com biblioteca livre, para o aplicativo poder entrar na F-Droid.
 - Arrastar o cartão para onde o motorista preferir.
 
 ## Licença
 
-[MIT](LICENSE).
+[MIT](LICENSE). A letra do aplicativo é a [Overpass](https://github.com/RedHatOfficial/Overpass),
+desenhada a partir das placas de estrada, sob a [licença OFL](docs/licencas/Overpass-OFL.txt).
 
 ---
 
 **In English:** Vale a Corrida ("is the ride worth it?") is an open-source Android app for
 ride-hailing drivers in Brazil. It reads the ride offer shown by Uber, 99 or inDrive (through an
 accessibility service, with on-device OCR as a fallback) and overlays the earnings per km and per
-hour, colour-coded against thresholds the driver sets. It has no internet permission, and it never
-accepts or declines rides on the driver's behalf.
+hour, colour-coded against thresholds the driver sets. It also keeps a log of work expenses (fuel, food, maintenance) with a
+monthly report. It has no internet permission, and it never accepts or declines rides on the
+driver's behalf.

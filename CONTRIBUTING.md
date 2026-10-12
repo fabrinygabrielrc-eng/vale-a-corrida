@@ -16,10 +16,10 @@ Apague endereços e nomes antes de colar. O que interessa é o formato das linha
 
 O projeto tem duas partes:
 
-- `nucleo/`: Kotlin puro, sem Android. Acha a oferta no texto (`LeitorDeOferta`) e faz as contas
-  (`Avaliador`). É onde quase todo conserto acontece.
+- `nucleo/`: Kotlin puro, sem Android. Acha a oferta no texto (`LeitorDeOferta`), faz as contas
+  (`Avaliador`) e fecha o mês de gastos (`Relatorios`). É onde quase todo conserto acontece.
 - `app/`: o aplicativo Android. O serviço de acessibilidade (`leitura/ServicoDeLeitura`) recolhe o
-  texto da tela, por acessibilidade ou pela imagem, e mostra o cartão.
+  texto da tela, por acessibilidade ou pela imagem, e mostra o cartão. As telas ficam em `ui/`.
 
 Para consertar uma oferta não reconhecida:
 
