@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_nome">Vale a Corrida</string>
+    <string name="servico_resumo">Mostra quanto cada corrida paga por km e por hora</string>
+    <string name="servico_descricao">Lê a oferta de corrida na tela da Uber, da 99 e do inDrive e mostra, por cima, quanto ela paga por km e por hora. Só lê quando um desses aplicativos está na tela. Não aceita nem recusa corridas, e nada do que é lido sai do aparelho.</string>
+</resources>

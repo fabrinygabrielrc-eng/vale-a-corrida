@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="asfalto">#15181C</color>
+
+    <!-- Só o que aparece antes de a tela ser desenhada. As cores do aplicativo estão em ui/Tema.kt. -->
+    <style name="Tema.ValeACorrida" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/asfalto</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>

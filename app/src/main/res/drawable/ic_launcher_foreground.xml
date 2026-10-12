@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Três luzes: vermelha e amarela pequenas, verde grande. A corrida que vale é a que acende o verde. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#C8323A"
+        android:pathData="M35,54m-6,0a6,6 0,1 0,12 0a6,6 0,1 0,-12 0" />
+    <path
+        android:fillColor="#F2B705"
+        android:pathData="M51,54m-6,0a6,6 0,1 0,12 0a6,6 0,1 0,-12 0" />
+    <path
+        android:fillColor="#1FA65A"
+        android:pathData="M71,54m-11,0a11,11 0,1 0,22 0a11,11 0,1 0,-22 0" />
+</vector>
