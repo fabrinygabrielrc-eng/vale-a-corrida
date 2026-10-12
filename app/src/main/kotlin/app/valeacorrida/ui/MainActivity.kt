@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PlayArrow
@@ -26,13 +25,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import app.valeacorrida.LivroDeGastos
 import app.valeacorrida.Preferencias
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        val estado = Estado(Preferencias(this))
+        val estado = Estado(Preferencias(this), LivroDeGastos(this))
         setContent {
             Tema { Aplicativo(estado) }
         }
@@ -41,7 +41,8 @@ class MainActivity : ComponentActivity() {
 
 enum class Aba(val rotulo: String, val icone: ImageVector) {
     INICIO("Início", Icons.Filled.Home),
-    VALORES("Valores", Icons.Filled.Edit),
+    VALORES("Valores", Pictogramas.Ajustes),
+    GASTOS("Gastos", Pictogramas.Bomba),
     SIMULADOR("Simulador", Icons.Filled.PlayArrow),
     MAIS("Mais", Icons.Filled.Menu),
 }
@@ -65,7 +66,7 @@ fun Aplicativo(estado: Estado, abaInicial: Aba = Aba.INICIO) {
                         selected = aba == item,
                         onClick = { aba = item },
                         icon = { Icon(item.icone, contentDescription = null) },
-                        label = { Text(item.rotulo) },
+                        label = { Text(item.rotulo, maxLines = 1) },
                     )
                 }
             }
@@ -73,8 +74,9 @@ fun Aplicativo(estado: Estado, abaInicial: Aba = Aba.INICIO) {
     ) { margens ->
         Box(Modifier.padding(margens).fillMaxSize()) {
             when (aba) {
-                Aba.INICIO -> TelaInicio(estado, aoAbrirSimulador = { aba = Aba.SIMULADOR })
+                Aba.INICIO -> TelaInicio(estado, aoAbrirSimulador = { aba = Aba.SIMULADOR }, aoAbrirGastos = { aba = Aba.GASTOS })
                 Aba.VALORES -> TelaValores(estado)
+                Aba.GASTOS -> TelaGastos(estado)
                 Aba.SIMULADOR -> TelaSimulador(estado)
                 Aba.MAIS -> TelaMais(estado)
             }

@@ -61,6 +61,11 @@ class Preferencias(contexto: Context) {
         get() = Posicao.entries.firstOrNull { it.name == dados.getString("posicao", null) } ?: Posicao.TOPO
         set(valor) = dados.edit().putString("posicao", valor.name).apply()
 
+    /** O último mês fechado cujo relatório de gastos a pessoa já abriu, como "2026-09". Vazio: nenhum. */
+    var relatorioVisto: String
+        get() = dados.getString("relatorioVisto", null).orEmpty()
+        set(valor) = dados.edit().putString("relatorioVisto", valor).apply()
+
     fun escutar(ouvinte: SharedPreferences.OnSharedPreferenceChangeListener) =
         dados.registerOnSharedPreferenceChangeListener(ouvinte)
 

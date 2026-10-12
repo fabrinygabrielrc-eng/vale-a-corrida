@@ -4,10 +4,8 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -70,15 +68,15 @@ fun TelaMais(estado: Estado) {
             )
             if (leituras.isNotEmpty()) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = {
+                    BotaoPrincipal("Compartilhar", {
                         val texto = Diagnostico.texto(leituras, BuildConfig.VERSION_NAME)
                         val envio = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, texto)
                         contexto.abrir(Intent.createChooser(envio, "Compartilhar as leituras"))
-                    }) { Text("Compartilhar") }
-                    TextButton(onClick = {
+                    })
+                    BotaoDeTexto("Apagar", {
                         Diagnostico.apagar(contexto)
                         leituras = emptyList()
-                    }) { Text("Apagar") }
+                    })
                 }
                 Apoio("O texto traz o que estava na tela, inclusive endereços. Confira antes de enviar.")
             }
@@ -88,6 +86,7 @@ fun TelaMais(estado: Estado) {
             Apoio("O Vale a Corrida não tem permissão de internet. O que ele lê da tela serve para fazer a conta e é descartado: nada sai do aparelho.")
             Apoio("Ele só lê a tela enquanto a Uber, a 99 ou o inDrive estão abertos, e só os que você deixou ligados.")
             Apoio("Ele não aceita nem recusa corridas. Quem decide é você.")
+            Apoio("Os gastos que você anota também ficam só neste aparelho. Se desinstalar o aplicativo, eles se perdem: compartilhe o relatório do mês para guardar.")
         }
 
         Bloco("Antes de usar") {
@@ -97,9 +96,8 @@ fun TelaMais(estado: Estado) {
 
         Bloco("Código aberto") {
             Apoio("Versão ${BuildConfig.VERSION_NAME}. O código é público: qualquer pessoa pode conferir o que o aplicativo faz e ajudar a melhorar.")
-            TextButton(onClick = { contexto.abrir(Intent(Intent.ACTION_VIEW, Uri.parse(ENDERECO_DO_PROJETO))) }) {
-                Text("Abrir o projeto no GitHub")
-            }
+            BotaoSecundario("Abrir o projeto no GitHub", { contexto.abrir(Intent(Intent.ACTION_VIEW, Uri.parse(ENDERECO_DO_PROJETO))) })
+            Apoio("A letra do aplicativo é a Overpass, desenhada a partir das placas de estrada e de licença livre.")
         }
     }
 }

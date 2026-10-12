@@ -74,7 +74,7 @@ fun TelaSimulador(estado: Estado) {
 
     Pagina("Simulador") {
         if (!estado.leituraLigada) {
-            Bloco { Apoio("A leitura está desligada. O cartão só aparece por cima com ela ligada, na aba Início.") }
+            Apoio("A leitura está desligada. O cartão só aparece por cima com ela ligada, na aba Início.")
         }
 
         OfertaDeMentira(estilo, oferta, semTexto)
@@ -122,7 +122,7 @@ private fun OfertaDeMentira(estilo: Estilo, oferta: Oferta, semTexto: Boolean) {
     Surface(
         color = Color(0xFF0E1013),
         contentColor = Color.White,
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(18.dp),
         modifier = Modifier
             .fillMaxWidth()
             .then(if (semTexto) Modifier.clearAndSetSemantics { } else Modifier),
