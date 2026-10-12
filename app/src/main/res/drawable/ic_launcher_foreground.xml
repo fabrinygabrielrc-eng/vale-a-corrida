@@ -1,17 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Três luzes: vermelha e amarela pequenas, verde grande. A corrida que vale é a que acende o verde. -->
+<!-- A estrada em forma de "certo": a corrida que vale. Gerado por ferramentas/icone/gerar.cjs; a faixa do meio é traço por traço porque o vetor do Android não sabe tracejar. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
     <path
-        android:fillColor="#C8323A"
-        android:pathData="M35,54m-6,0a6,6 0,1 0,12 0a6,6 0,1 0,-12 0" />
+        android:pathData="M34,56 L47,69 L74,40"
+        android:strokeColor="#15181C"
+        android:strokeWidth="14"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
     <path
-        android:fillColor="#F2B705"
-        android:pathData="M51,54m-6,0a6,6 0,1 0,12 0a6,6 0,1 0,-12 0" />
+        android:pathData="M35.77,57.77 L39.3,61.3"
+        android:strokeColor="#F4F4EF"
+        android:strokeWidth="2.3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
     <path
-        android:fillColor="#1FA65A"
-        android:pathData="M71,54m-11,0a11,11 0,1 0,22 0a11,11 0,1 0,-22 0" />
+        android:pathData="M42.13,64.13 L45.31,67.31"
+        android:strokeColor="#F4F4EF"
+        android:strokeWidth="2.3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M49.73,66.07 L53.13,62.41"
+        android:strokeColor="#F4F4EF"
+        android:strokeWidth="2.3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M56.2,59.12 L59.61,55.46"
+        android:strokeColor="#F4F4EF"
+        android:strokeWidth="2.3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M62.67,52.17 L66.08,48.51"
+        android:strokeColor="#F4F4EF"
+        android:strokeWidth="2.3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M69.15,45.21 L72.55,41.55"
+        android:strokeColor="#F4F4EF"
+        android:strokeWidth="2.3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
 </vector>

@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="asfalto">#15181C</color>
+    <!-- O fundo do ícone: o verde da corrida boa. -->
+    <color name="verde_da_marca">#178A47</color>
 
     <!-- Só o que aparece antes de a tela ser desenhada. As cores do aplicativo estão em ui/Tema.kt. -->
     <style name="Tema.ValeACorrida" parent="android:Theme.Material.NoActionBar">
