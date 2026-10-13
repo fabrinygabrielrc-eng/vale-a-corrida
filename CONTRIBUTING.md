@@ -12,6 +12,11 @@ A ajuda que mais vale é dizer quando uma oferta deixou de ser reconhecida.
 
 Apague endereços e nomes antes de colar. O que interessa é o formato das linhas.
 
+O texto começa pelo aparelho e pelo **rastro**: se o serviço de leitura estava rodando, quantos
+avisos de mudança de tela o aplicativo de corrida mandou, quantos pedaços de texto chegaram e o
+que a captura da tela devolveu. Ele não traz o que estava escrito na tela. Quando o cartão não
+aparece e nenhuma leitura é guardada, é o rastro que diz onde a oferta se perdeu.
+
 ## Programando
 
 O projeto tem duas partes:

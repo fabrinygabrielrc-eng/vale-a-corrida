@@ -14,6 +14,9 @@ Leia o `README.md` antes de mexer.
   - `leitura/LeitorDeTela`: texto da árvore de acessibilidade. `leitura/LeitorDeImagem`: texto da captura (ML Kit).
   - `leitura/Sobreposicao` e `leitura/CartaoView`: o cartão por cima da tela.
   - `ui/`: as telas, em Compose. `Preferencias`: o que a pessoa escolheu. `Diagnostico`: leituras guardadas.
+  - `Rastro`: o caminho de cada leitura, sem o conteúdo da tela. Com "Guardar as últimas leituras"
+    ligado, o serviço também faz uma ronda de 3 em 3 segundos, para o caso de o aplicativo de
+    corrida não avisar as mudanças de tela.
   - `LivroDeGastos`: os gastos anotados, num arquivo do aparelho. `ui/TelaGastos`: anotar e ver o relatório.
 
 ## Comandos
@@ -51,9 +54,16 @@ Mudou tela ou cartão: rode o `recordRoborazziDebug` e **olhe as imagens** antes
 
 ## O que ainda não foi conferido
 
-A versão 0.1 foi instalada num celular, mas até a 0.2 ninguém leu uma oferta de verdade da Uber ou
-da 99. Os formatos nos testes foram escritos de memória. Não trate esses formatos como fato:
-quando chegar uma leitura real, ela vale mais que o teste antigo.
+Ninguém leu ainda uma oferta de verdade da Uber ou da 99. Os formatos nos testes foram escritos
+de memória. Não trate esses formatos como fato: quando chegar uma leitura real, ela vale mais que
+o teste antigo.
+
+Primeiro teste real (outubro de 2026, Uber, versão 0.2.0): o cartão não apareceu e nenhuma leitura
+foi guardada, com o simulador funcionando no mesmo celular. A causa não está achada. Antes de
+mexer no leitor ou no serviço, peça o texto do **rastro** (`Rastro`, aba Mais > Compartilhar):
+ele diz se o serviço estava rodando, se a Uber avisa as mudanças de tela, quanto texto chegou e o
+que a captura devolveu. Hipóteses abertas: a Uber não entrega o texto nem os avisos a este
+serviço; a captura vem recusada ou vazia; o aparelho derruba o serviço com a Uber aberta.
 
 ## Cuidados no Android
 

@@ -27,9 +27,11 @@ Versão 0.2. O que foi conferido e o que não foi:
 - **Conferido:** o leitor de ofertas, as contas e o relatório de gastos, com 69 testes
   automáticos; as telas, desenhadas em computador e olhadas uma a uma; o APK, que compila, sai
   assinado e sem permissão de internet.
-- **Ainda não conferido:** a leitura das ofertas de verdade da Uber, da 99 e do inDrive. A
-  versão 0.1 já foi instalada num celular, mas ainda não passou por uma corrida real. Os formatos
-  de oferta dos testes foram escritos de memória.
+- **Ainda não conferido:** a leitura das ofertas de verdade da Uber, da 99 e do inDrive. Os
+  formatos de oferta dos testes foram escritos de memória.
+- **Primeiro teste com corrida de verdade (outubro de 2026, Uber):** o cartão não apareceu, e
+  nenhuma leitura foi guardada. No mesmo celular o simulador funciona, então a oferta da Uber se
+  perde antes de chegar ao leitor. A versão 0.2.1 anota o caminho de cada leitura para achar onde.
 
 Se você instalar e o cartão não aparecer, isso é esperado nesta fase, e é exatamente o aviso que
 o projeto precisa: veja [Como ajudar](#como-ajudar).
@@ -54,7 +56,10 @@ O que ele **não** faz: não aceita nem recusa corridas, e não toca na tela por
 - **Sem permissão de internet.** O que é lido da tela serve para fazer a conta e é descartado.
   Nada sai do aparelho. Dá para conferir no `AndroidManifest.xml` e no APK.
 - Só lê a tela enquanto a Uber, a 99 ou o inDrive estão abertos, e só os que você deixar ligados.
-- Guardar leituras para diagnóstico é opcional, vem desligado e fica só no aparelho.
+- Guardar leituras para diagnóstico é opcional, vem desligado e fica só no aparelho. Ligado,
+  o aplicativo guarda o texto das telas com cara de oferta e anota o caminho de cada leitura
+  (se o serviço estava rodando, quantos pedaços de texto chegaram, o que a captura devolveu),
+  sem o que estava escrito.
 - Os gastos anotados ficam num arquivo do próprio aparelho. Desinstalar o aplicativo apaga esse
   arquivo: compartilhe o relatório do mês se quiser guardar.
 
@@ -74,7 +79,7 @@ tela de outro.
 
 Se o Android barrar a instalação: no Brasil, a proteção do Google costuma recusar aplicativo que
 usa acessibilidade quando o arquivo vem do navegador ou de uma mensagem. Nesse caso, instale pelo
-computador, com o celular no cabo e a depuração USB ligada: `adb install vale-a-corrida-0.2.0.apk`.
+computador, com o celular no cabo e a depuração USB ligada: `adb install vale-a-corrida-0.2.1.apk`.
 
 ## Antes de usar
 
@@ -118,6 +123,9 @@ A ajuda que mais vale: avisar quando uma oferta não foi reconhecida. Na aba **M
 **Guardar as últimas leituras**, espere a oferta aparecer de novo, toque em **Compartilhar** e
 abra uma [issue](https://github.com/fabrinygabrielrc-eng/vale-a-corrida/issues/new/choose) com o
 texto. Apague endereços e nomes antes de enviar. Cada leitura enviada vira um teste novo.
+
+Se o cartão não apareceu e a tela diz "Nenhuma leitura guardada", compartilhe assim mesmo: o
+texto leva o rastro, que mostra em que ponto a oferta se perdeu.
 
 Para quem programa, o passo a passo está em [CONTRIBUTING.md](CONTRIBUTING.md).
 
