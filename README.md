@@ -24,17 +24,20 @@ pessoa conferir o que ele faz com a permissão que recebe.
 
 Versão 0.2. O que foi conferido e o que não foi:
 
-- **Conferido:** o leitor de ofertas, as contas e o relatório de gastos, com 69 testes
+- **Conferido:** o leitor de ofertas, as contas e o relatório de gastos, com 76 testes
   automáticos; as telas, desenhadas em computador e olhadas uma a uma; o APK, que compila, sai
   assinado e sem permissão de internet.
-- **Ainda não conferido:** a leitura das ofertas de verdade da Uber, da 99 e do inDrive. Os
-  formatos de oferta dos testes foram escritos de memória.
-- **Primeiro teste com corrida de verdade (outubro de 2026, Uber):** o cartão não apareceu, e
-  nenhuma leitura foi guardada. No mesmo celular o simulador funciona, então a oferta da Uber se
-  perde antes de chegar ao leitor. A versão 0.2.1 anota o caminho de cada leitura para achar onde.
+- **Conferido com corrida de verdade (outubro de 2026):** a Uber, num Xiaomi com Android 15. O
+  cartão aparece por cima da oferta e sai quando ela some. Nesse aparelho a Uber não entrega o
+  texto da oferta ao serviço, e a leitura é feita pela imagem da tela.
+- **Ainda não conferido:** a 99 e o inDrive, e a Uber em outros aparelhos e em outras versões do
+  Android. Os formatos de oferta desses dois foram escritos de memória.
+- **O que dava errado até a 0.2.1:** o cartão aparecia uma vez e não voltava mais. O Android às
+  vezes não responde ao pedido de captura da tela, e o serviço ficava esperando essa resposta
+  para sempre. A 0.2.2 dá a captura por perdida depois de um prazo e tenta de novo.
 
-Se você instalar e o cartão não aparecer, isso é esperado nesta fase, e é exatamente o aviso que
-o projeto precisa: veja [Como ajudar](#como-ajudar).
+Se você instalar e o cartão não aparecer, isso ainda pode acontecer nesta fase, e é exatamente o
+aviso que o projeto precisa: veja [Como ajudar](#como-ajudar).
 
 ## O que ele faz
 
@@ -79,7 +82,7 @@ tela de outro.
 
 Se o Android barrar a instalação: no Brasil, a proteção do Google costuma recusar aplicativo que
 usa acessibilidade quando o arquivo vem do navegador ou de uma mensagem. Nesse caso, instale pelo
-computador, com o celular no cabo e a depuração USB ligada: `adb install vale-a-corrida-0.2.1.apk`.
+computador, com o celular no cabo e a depuração USB ligada: `adb install vale-a-corrida-0.2.2.apk`.
 
 ## Antes de usar
 

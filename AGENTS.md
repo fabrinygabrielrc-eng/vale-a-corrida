@@ -14,9 +14,13 @@ Leia o `README.md` antes de mexer.
   - `leitura/LeitorDeTela`: texto da árvore de acessibilidade. `leitura/LeitorDeImagem`: texto da captura (ML Kit).
   - `leitura/Sobreposicao` e `leitura/CartaoView`: o cartão por cima da tela.
   - `ui/`: as telas, em Compose. `Preferencias`: o que a pessoa escolheu. `Diagnostico`: leituras guardadas.
+  - `leitura/VezDaImagem`: uma leitura por imagem de cada vez, com prazo para a captura chegar.
   - `Rastro`: o caminho de cada leitura, sem o conteúdo da tela. Com "Guardar as últimas leituras"
     ligado, o serviço também faz uma ronda de 3 em 3 segundos, para o caso de o aplicativo de
     corrida não avisar as mudanças de tela.
+  - `Registro`: a mesma história do rastro, escrita na hora no registro do Android, para quem está
+    com o celular no cabo. Só fala depois de `adb shell setprop log.tag.ValeACorrida DEBUG`
+    (e o serviço precisa ser ligado de novo depois disso); ler com `adb logcat -s ValeACorrida`.
   - `LivroDeGastos`: os gastos anotados, num arquivo do aparelho. `ui/TelaGastos`: anotar e ver o relatório.
 
 ## Comandos
@@ -52,24 +56,40 @@ Mudou tela ou cartão: rode o `recordRoborazziDebug` e **olhe as imagens** antes
 - A letra é a Overpass (`res/font`), feita a partir das placas de estrada. Licença em `docs/licencas`.
 - O ícone sai de `ferramentas/icone/gerar.cjs`. Não edite os vetores à mão.
 
-## O que ainda não foi conferido
+## O que foi conferido com corrida de verdade, e o que não foi
 
-Ninguém leu ainda uma oferta de verdade da Uber ou da 99. Os formatos nos testes foram escritos
-de memória. Não trate esses formatos como fato: quando chegar uma leitura real, ela vale mais que
-o teste antigo.
+Uber, outubro de 2026, num Xiaomi com Android 15 (HyperOS 3), com o celular no cabo:
 
-Primeiro teste real (outubro de 2026, Uber, versão 0.2.0): o cartão não apareceu e nenhuma leitura
-foi guardada, com o simulador funcionando no mesmo celular. A causa não está achada. Antes de
-mexer no leitor ou no serviço, peça o texto do **rastro** (`Rastro`, aba Mais > Compartilhar):
-ele diz se o serviço estava rodando, se a Uber avisa as mudanças de tela, quanto texto chegou e o
-que a captura devolveu. Hipóteses abertas: a Uber não entrega o texto nem os avisos a este
-serviço; a captura vem recusada ou vazia; o aparelho derruba o serviço com a Uber aberta.
+- **A Uber esconde a oferta deste serviço.** Com o cartão de oferta na tela, a janela da Uber
+  entrega zero pedaços de texto (sem oferta, entrega os seis da tela do mapa). Uma ferramenta de
+  sistema (`uiautomator dump`) enxerga o texto inteiro: é o Android 14 em diante escondendo a
+  tela de serviços que não se declaram `isAccessibilityTool`. Não declaramos, porque o
+  aplicativo não é uma ferramenta de acessibilidade. Logo, na Uber a leitura é **pela imagem**.
+- **O Android às vezes não responde ao `takeScreenshot`.** No registro do sistema aparece
+  `ScreenCaptureListenerWrapper consumer not alive` e nem `onSuccess` nem `onFailure` são
+  chamados. Até a 0.2.1 isso deixava o serviço esperando para sempre: o cartão aparecia uma vez e
+  nunca mais. `VezDaImagem` dá a captura por perdida depois do prazo e o serviço tenta de novo.
+- **O formato real da oferta** (Envios Moto) está em `LeitorDeOfertaTest`, no teste "uber envios
+  moto como veio do celular": um trecho só, o total, escrito "17 min (4.5 km)", com ponto e com o
+  espaço que não quebra linha.
+- A Uber avisa a mudança de tela quando a oferta entra: foi o aviso que puxou a primeira leitura
+  nas três ofertas acompanhadas. Com a oferta parada na tela os avisos continuam, mais raros.
+
+Não conferido: a 99 e o inDrive, e a Uber em outros aparelhos e versões do Android. Os formatos
+desses testes foram escritos de memória. Não trate esses formatos como fato: quando chegar uma
+leitura real, ela vale mais que o teste antigo.
+
+Quando o cartão não aparecer para alguém, comece pelo caminho da leitura, não pelo leitor: com
+cabo, o `Registro`; sem cabo, o texto do **rastro** (aba Mais > Compartilhar). Os dois dizem se o
+serviço estava rodando, se o aplicativo avisa as mudanças de tela, quanto texto chegou e o que a
+captura devolveu.
 
 ## Cuidados no Android
 
 - A sobreposição usa `TYPE_ACCESSIBILITY_OVERLAY` com `FLAG_NOT_TOUCHABLE`: o cartão nunca pode
   receber toque, senão cobre o botão de aceitar.
 - `takeScreenshot` só existe do Android 11 em diante e não pode ser chamado mais de três vezes por segundo.
+  A resposta dele pode nunca chegar: nada no serviço pode ficar esperando por ela sem prazo.
 - O simulador (`ui/TelaSimulador`) escreve os controles como "Minutos de viagem: 14", nunca "14 min":
   o leitor tomaria o controle por um trecho da corrida.
 - Os gastos são gravados com troca única de arquivo (`LivroDeGastos.gravar`). Não troque por
