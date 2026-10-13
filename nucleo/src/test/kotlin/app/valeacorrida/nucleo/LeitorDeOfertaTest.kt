@@ -46,6 +46,28 @@ class LeitorDeOfertaTest {
         ).confere(31.90, Percurso(9.0, 3.8), Percurso(25.0, 12.4))
     }
 
+    /**
+     * A primeira oferta de verdade que chegou: Uber, Envios Moto, outubro de 2026, lida da
+     * acessibilidade de um Xiaomi com Android 15. Os pedaços e os lugares são os que vieram,
+     * com o espaço que não quebra linha em "R$ 4,20" e em "17 min (4.5 km)". Só os endereços
+     * foram trocados por inventados. A Uber mostra um trecho só, o total, sem separar a busca.
+     */
+    @Test fun `uber envios moto como veio do celular`() {
+        val linhas = Linhas.agrupar(
+            listOf(
+                Fragmento("Envios Moto", esquerda = 176, topo = 1182, largura = 277, altura = 90),
+                Fragmento("R$ 4,20", esquerda = 88, topo = 1272, largura = 411, altura = 154),
+                Fragmento("4,85 (3816)", esquerda = 176, topo = 1426, largura = 251, altura = 90),
+                Fragmento("Verificado", esquerda = 537, topo = 1426, largura = 235, altura = 90),
+                Fragmento("17 min (4.5 km)", esquerda = 176, topo = 1585, largura = 355, altura = 77),
+                Fragmento("Rua das Flores, 658 - Centro, Campina Grande - PB, 58400-000, Brasil", esquerda = 176, topo = 1709, largura = 816, altura = 176),
+                Fragmento("Rua do Sol, 465, Campina Grande, Campina Grande", esquerda = 176, topo = 1885, largura = 816, altura = 121),
+                Fragmento("Selecionar", esquerda = 88, topo = 2050, largura = 904, altura = 132),
+            ),
+        )
+        LeitorDeOferta.ler(linhas, Origem.UBER).confere(4.20, null, Percurso(17.0, 4.5))
+    }
+
     @Test fun `ganhos do dia no topo nao sao o valor da corrida`() {
         val oferta = LeitorDeOferta.ler(
             listOf(
