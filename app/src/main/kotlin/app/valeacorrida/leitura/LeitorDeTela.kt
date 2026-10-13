@@ -56,6 +56,20 @@ object LeitorDeTela {
         return achado to naTela
     }
 
+    /**
+     * As janelas que o Android lista, para o registro: o tipo, de quem é e quantos filhos a raiz
+     * tem. O título só entra na janela que vem sem raiz, que é a que o Android esconde do serviço.
+     */
+    fun janelas(servico: AccessibilityService): String = try {
+        servico.windows.joinToString("; ") { janela ->
+            val raiz = janela.root
+            val dono = raiz?.let { "${it.packageName}, ${it.childCount} filhos" } ?: "sem raiz, título \"${janela.title ?: ""}\""
+            "tipo ${janela.type}${if (janela.isActive) " ativa" else ""}: $dono"
+        }.ifEmpty { "nenhuma" }
+    } catch (e: Exception) {
+        "não deu para listar (${e.javaClass.simpleName})"
+    }
+
     fun fragmentos(raiz: AccessibilityNodeInfo): List<Fragmento> =
         mutableListOf<Fragmento>().also { coletar(raiz, it, 0) }
 

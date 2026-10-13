@@ -18,6 +18,7 @@ import androidx.annotation.RequiresApi
 import app.valeacorrida.Diagnostico
 import app.valeacorrida.Preferencias
 import app.valeacorrida.Rastro
+import app.valeacorrida.Registro
 import app.valeacorrida.nucleo.Avaliador
 import app.valeacorrida.nucleo.Fragmento
 import app.valeacorrida.nucleo.LeitorDeOferta
@@ -44,7 +45,10 @@ class ServicoDeLeitura : AccessibilityService() {
     private var pacotes: Set<String> = emptySet()
     private var pacoteDaVez: String? = null
     private var leituraMarcada = false
-    private var lendoImagem = false
+    private val vezDaImagem = VezDaImagem(principal, PRAZO_DA_CAPTURA_MS, PRAZO_DA_IMAGEM_MS)
+
+    /** Leituras por imagem seguidas que o Android deixou sem resposta. */
+    private var capturasPerdidas = 0
     private var ultimaLeitura = 0L
     private var ultimoAviso = 0L
     private var leiturasSemOferta = 0
@@ -68,7 +72,7 @@ class ServicoDeLeitura : AccessibilityService() {
     private val tirarCartao = Runnable { sobreposicao.esconder() }
     private val rondar = object : Runnable {
         override fun run() {
-            if (!guardando) {
+            if (!guardando && !Registro.ligado) {
                 rondando = false
                 return
             }
@@ -77,30 +81,51 @@ class ServicoDeLeitura : AccessibilityService() {
         }
     }
 
+    /** Avisos de mudança de tela ainda não contados no registro, e quando saiu a última linha deles. */
+    private var avisosPorContar = 0
+    private var avisosContadosEm = 0L
+
     override fun onServiceConnected() {
         ServicoVivo.desde = System.currentTimeMillis()
         preferencias = Preferencias(this)
         sobreposicao = Sobreposicao(this)
         preferencias.escutar(aoMudarPreferencias)
         aplicarPreferencias()
+        Registro.escrever {
+            val info = serviceInfo
+            "serviço ligado; escuta ${info?.packageNames?.joinToString() ?: "tudo"}; avisos ${info?.eventTypes}, opções ${info?.flags}"
+        }
     }
 
     private fun aplicarPreferencias() {
         guardando = preferencias.guardarLeituras
-        if (guardando) {
-            ServicoVivo.desde?.let { Rastro.servicoLigou(this, it) }
-            if (!rondando) {
-                rondando = true
-                principal.postDelayed(rondar, RONDA_MS)
-            }
+        if (guardando) ServicoVivo.desde?.let { Rastro.servicoLigou(this, it) }
+        // Com o registro pedido pelo cabo a ronda também roda: é ela que mostra o que o serviço
+        // enxerga quando o aplicativo de corrida não avisa nada.
+        if ((guardando || Registro.ligado) && !rondando) {
+            rondando = true
+            principal.postDelayed(rondar, RONDA_MS)
         }
         // O próprio Vale a Corrida entra na lista por causa do simulador.
         pacotes = preferencias.acompanhados.flatMap { it.pacotes }.toSet() + packageName
         serviceInfo = serviceInfo?.apply { packageNames = pacotes.toTypedArray() } ?: return
     }
 
+    /** No registro, os avisos saem contados, no máximo uma linha por segundo. */
+    private fun contarAviso(evento: AccessibilityEvent, pacote: String) {
+        if (!Registro.ligado) return
+        avisosPorContar++
+        val agora = SystemClock.uptimeMillis()
+        if (agora - avisosContadosEm < 1_000L) return
+        val quantos = avisosPorContar
+        Registro.escrever { "$quantos avisos; o último de $pacote, tipo ${AccessibilityEvent.eventTypeToString(evento.eventType)}" }
+        avisosPorContar = 0
+        avisosContadosEm = agora
+    }
+
     override fun onAccessibilityEvent(evento: AccessibilityEvent?) {
         val pacote = evento?.packageName?.toString() ?: return
+        contarAviso(evento, pacote)
         if (pacote !in pacotes) return
         if (pacote == packageName && !Simulador.naTela) return
         if (guardando && pacote != packageName) {
@@ -151,11 +176,14 @@ class ServicoDeLeitura : AccessibilityService() {
     private fun conferirSemAviso() {
         if (leituraMarcada || SystemClock.uptimeMillis() - ultimoAviso < RONDA_MS) return
         val (pacote, naTela) = LeitorDeTela.aVista(this, pacotes - packageName)
+        Registro.escrever { "ronda: ${pacote ?: "nenhum aplicativo de corrida"} à vista; janelas: ${LeitorDeTela.janelas(this)}" }
         if (pacote == null) {
-            Rastro.passo(
-                this,
-                Rastro.Passo(System.currentTimeMillis(), "Ronda", "nenhuma janela de aplicativo de corrida entre $naTela na tela", "não tentou", false),
-            )
+            if (guardando) {
+                Rastro.passo(
+                    this,
+                    Rastro.Passo(System.currentTimeMillis(), "Ronda", "nenhuma janela de aplicativo de corrida entre $naTela na tela", "não tentou", false),
+                )
+            }
             return
         }
         pacoteDaVez = pacote
@@ -179,7 +207,7 @@ class ServicoDeLeitura : AccessibilityService() {
         val aVista = tela.area != null || tela.fragmentos.isNotEmpty() ||
             SystemClock.uptimeMillis() - ultimoAviso < AVISO_RECENTE_MS
         val trechos = Linhas.agrupar(tela.fragmentos)
-        val lido = if (guardando) {
+        val lido = if (guardando || Registro.ligado) {
             (if (semAviso) "sem aviso, " else "") +
                 "janelas ${tela.janelas} de ${tela.naTela}, ${tela.fragmentos.size} pedaços${marcas(trechos)}"
         } else {
@@ -212,19 +240,24 @@ class ServicoDeLeitura : AccessibilityService() {
 
     /** Se as linhas têm valor em reais e tempo ou distância. Não diz o que está escrito nelas. */
     private fun marcas(trechos: List<Trecho>): String {
-        if (!guardando || trechos.isEmpty()) return ""
+        if (!(guardando || Registro.ligado) || trechos.isEmpty()) return ""
         fun simNao(tem: Boolean) = if (tem) "sim" else "não"
         return " (valor ${simNao(LeitorDeOferta.temValor(trechos))}, trecho ${simNao(LeitorDeOferta.temTrecho(trechos))})"
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
     private fun lerPorImagem(origem: Origem, area: Rect?, trechosDoTexto: List<Trecho>, lido: String) {
-        if (lendoImagem) return
-        lendoImagem = true
+        val pedido = vezDaImagem.comecar { capturaPerdida(origem, trechosDoTexto, lido) }
+        if (pedido == null) {
+            Registro.escrever { "${origem.rotulo} | a leitura por imagem anterior ainda não terminou; esta ficou sem imagem" }
+            return
+        }
         val cartao = sobreposicao.area()
 
         fun terminar(fragmentos: List<Fragmento>?, falha: String) = principal.post {
-            lendoImagem = false
+            // Chegou depois do prazo: a leitura já foi dada por perdida e outra pode estar em curso.
+            if (!vezDaImagem.terminar(pedido)) return@post
+            capturasPerdidas = 0
             val trechos = fragmentos?.let(Linhas::agrupar)
             if (trechos == null) {
                 concluir(origem, null, trechosDoTexto, "texto", lido, falha)
@@ -236,6 +269,11 @@ class ServicoDeLeitura : AccessibilityService() {
         try {
             takeScreenshot(Display.DEFAULT_DISPLAY, emSegundoPlano, object : TakeScreenshotCallback {
                 override fun onSuccess(captura: ScreenshotResult) {
+                    pedido.capturaChegou()
+                    if (!pedido.valendo) {
+                        captura.hardwareBuffer.close()
+                        return
+                    }
                     val imagem = try {
                         recortar(captura, area, cartao)
                     } catch (_: Exception) {
@@ -253,14 +291,26 @@ class ServicoDeLeitura : AccessibilityService() {
                 }
 
                 override fun onFailure(codigo: Int) {
+                    pedido.capturaChegou()
                     terminar(null, "o Android recusou a captura (código $codigo)")
                 }
             })
         } catch (_: Exception) {
             // O aparelho não deixou capturar a tela. Segue só com o texto.
-            lendoImagem = false
+            vezDaImagem.terminar(pedido)
             concluir(origem, null, trechosDoTexto, "texto", lido, "o aparelho não deixou capturar a tela")
         }
+    }
+
+    /**
+     * O prazo da leitura por imagem venceu. Não conta como "a oferta sumiu": o cartão fica onde
+     * está. E tenta de novo logo, sem esperar o próximo aviso de mudança de tela, que com a
+     * oferta parada pode demorar mais do que ela dura.
+     */
+    private fun capturaPerdida(origem: Origem, trechosDoTexto: List<Trecho>, lido: String) {
+        Registro.escrever { "${origem.rotulo} | texto: $lido | imagem: $SEM_RESPOSTA | vai tentar de novo: ${capturasPerdidas < TENTATIVAS}" }
+        registrar(origem, null, trechosDoTexto, "texto", lido, SEM_RESPOSTA)
+        if (capturasPerdidas++ < TENTATIVAS) marcarLeitura()
     }
 
     /** Fica só com a área do aplicativo de corrida e cobre o nosso próprio cartão. */
@@ -290,6 +340,9 @@ class ServicoDeLeitura : AccessibilityService() {
     // ---------------------------------------------------------------- resultado
 
     private fun concluir(origem: Origem, oferta: Oferta?, trechos: List<Trecho>, modo: String, lido: String, imagem: String) {
+        Registro.escrever {
+            "${origem.rotulo} | texto: $lido | imagem: $imagem | ${if (oferta != null) "reconhecida pelo modo $modo" else "NÃO reconhecida"}"
+        }
         registrar(origem, oferta, trechos, modo, lido, imagem)
         principal.removeCallbacks(tirarCartao)
         if (oferta == null) {
@@ -343,6 +396,17 @@ class ServicoDeLeitura : AccessibilityService() {
 
         /** De quanto em quanto tempo a ronda confere a tela, quando o aplicativo de corrida não avisa nada. */
         const val RONDA_MS = 3_000L
+
+        /** A captura da tela costuma chegar em centésimos de segundo. Passou disto, o Android a perdeu. */
+        const val PRAZO_DA_CAPTURA_MS = 800L
+
+        /** A leitura por imagem inteira, com o reconhecimento do texto (o primeiro carrega o modelo). */
+        const val PRAZO_DA_IMAGEM_MS = 4_000L
+
+        /** Quantas vezes seguidas tentar de novo, sozinho, depois de uma captura sem resposta. */
+        const val TENTATIVAS = 3
+
+        const val SEM_RESPOSTA = "o Android não respondeu ao pedido de captura"
     }
 }
 

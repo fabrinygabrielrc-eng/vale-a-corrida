@@ -1,8 +1,11 @@
 package app.valeacorrida
 
 import android.graphics.Rect
+import android.os.Handler
+import android.os.Looper
 import android.view.accessibility.AccessibilityNodeInfo
 import app.valeacorrida.leitura.LeitorDeTela
+import app.valeacorrida.leitura.VezDaImagem
 import app.valeacorrida.leitura.areaDeLeitura
 import app.valeacorrida.nucleo.Categoria
 import app.valeacorrida.nucleo.Criterios
@@ -12,6 +15,8 @@ import app.valeacorrida.nucleo.Origem
 import app.valeacorrida.nucleo.Percurso
 import app.valeacorrida.ui.Estado
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -21,6 +26,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import java.io.File
+import java.time.Duration
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -127,6 +133,44 @@ class AparelhoTest {
         // O botão flutuante por cima de outro aplicativo: nada a ler, em vez da tela inteira.
         assertNull(areaDeLeitura(1080, 2400, Rect(900, 1000, 1060, 1160)))
         assertNull(areaDeLeitura(1080, 2400, Rect(2000, 3000, 2500, 3500)))
+    }
+
+    /**
+     * Visto num Xiaomi com Android 15, na primeira oferta de verdade: o Android às vezes nunca
+     * responde ao pedido de captura da tela. O serviço ficava esperando e não lia mais nada.
+     */
+    @Test fun `captura que o Android nao responde e dada por perdida`() {
+        val principal = Looper.getMainLooper()
+        fun passam(ms: Long) = shadowOf(principal).idleFor(Duration.ofMillis(ms))
+        val vez = VezDaImagem(Handler(principal), prazoDaCapturaMs = 800, prazoTotalMs = 3_000)
+        var perdidas = 0
+
+        val semResposta = vez.comecar { perdidas++ }!!
+        assertNull("uma leitura por imagem de cada vez", vez.comecar { perdidas++ })
+        passam(799)
+        assertEquals(0, perdidas)
+        passam(1)
+        assertEquals(1, perdidas)
+        assertFalse(semResposta.valendo)
+
+        // A leitura seguinte acontece, e a resposta atrasada da anterior não mexe nela.
+        val seguinte = vez.comecar { perdidas++ }!!
+        assertFalse(vez.terminar(semResposta))
+        seguinte.capturaChegou()
+        passam(900) // a captura chegou: o prazo curto não vale mais, o texto está sendo reconhecido
+        assertEquals(1, perdidas)
+        assertTrue(seguinte.valendo)
+        assertTrue(vez.terminar(seguinte))
+        passam(10_000)
+        assertEquals(1, perdidas)
+
+        // A captura que chegou e cujo reconhecimento nunca termina também tem prazo.
+        val travada = vez.comecar { perdidas++ }!!
+        travada.capturaChegou()
+        passam(3_000)
+        assertEquals(2, perdidas)
+        assertFalse(vez.terminar(travada))
+        assertNotNull(vez.comecar { perdidas++ })
     }
 
     private val arquivoDeGastos get() = File(contexto.filesDir, "gastos.json")

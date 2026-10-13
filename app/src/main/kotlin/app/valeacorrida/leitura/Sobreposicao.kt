@@ -7,6 +7,7 @@ import android.view.Gravity
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.view.WindowManager
 import app.valeacorrida.Posicao
+import app.valeacorrida.Registro
 import app.valeacorrida.nucleo.Avaliacao
 
 /** Põe e tira o cartão por cima da tela. O cartão não recebe toque: nunca cobre um botão. */
@@ -22,7 +23,8 @@ class Sobreposicao(private val contexto: Context) {
         val vista = cartao ?: CartaoView(contexto).also { nova ->
             try {
                 janelas.addView(nova, parametros(posicao))
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Registro.escrever { "o cartão não entrou na tela (${e.javaClass.simpleName})" }
                 return // o serviço está sendo desligado
             }
             cartao = nova
