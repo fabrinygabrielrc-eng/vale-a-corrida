@@ -117,8 +117,13 @@ class TelasTest {
             contexto,
             Diagnostico.Leitura(0, Origem.UBER.rotulo, "texto", false, listOf("R$ 12,48", "linha que o leitor não entendeu")),
         )
-        fotografar("inteira-mais") { Aplicativo(estado(), Aba.MAIS) }
+        Rastro.apagar(contexto)
+        Rastro.aviso(contexto, Origem.UBER.rotulo, 0)
+        Rastro.passo(contexto, Rastro.Passo(0, Origem.UBER.rotulo, "janelas 1 de 4, 0 pedaços", "o Android recusou a captura (código 4)", false))
+        fotografar("inteira-mais") { Aplicativo(estado().apply { mudarGuardarLeituras(true) }, Aba.MAIS) }
         Diagnostico.apagar(contexto)
+        Rastro.apagar(contexto)
+        Preferencias(contexto).guardarLeituras = false
     }
 }
 

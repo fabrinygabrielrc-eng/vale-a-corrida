@@ -3,6 +3,7 @@ package app.valeacorrida
 import android.graphics.Rect
 import android.view.accessibility.AccessibilityNodeInfo
 import app.valeacorrida.leitura.LeitorDeTela
+import app.valeacorrida.leitura.areaDeLeitura
 import app.valeacorrida.nucleo.Categoria
 import app.valeacorrida.nucleo.Criterios
 import app.valeacorrida.nucleo.LeitorDeOferta
@@ -86,6 +87,46 @@ class AparelhoTest {
         assertTrue("NÃO reconhecida" in Diagnostico.texto(guardadas, "0.1.0"))
         Diagnostico.apagar(contexto)
         assertEquals(0, Diagnostico.listar(contexto).size)
+    }
+
+    @Test fun `rastro junta as leituras iguais, conta os avisos e volta depois de reabrir`() {
+        Rastro.apagar(contexto)
+        assertTrue(Rastro.vazio(contexto))
+
+        Rastro.servicoLigou(contexto, 1_000)
+        Rastro.servicoLigou(contexto, 1_000)
+        repeat(3) { Rastro.aviso(contexto, "Uber", 2_000L + it) }
+        fun passo(quando: Long, imagem: String) = Rastro.Passo(quando, "Uber", "janelas 1 de 3, 0 pedaços", imagem, false)
+        Rastro.passo(contexto, passo(3_000, "0 linhas"))
+        Rastro.passo(contexto, passo(4_000, "0 linhas"))
+        Rastro.passo(contexto, passo(5_000, "12 linhas (valor sim, trecho sim)"))
+        Rastro.gravar(contexto)
+        Rastro.soltar()
+
+        val parado = Rastro.linhas(contexto, servicoDesde = null)
+        assertTrue(parado.first().startsWith("O serviço de leitura não está rodando"))
+        assertTrue(parado.any { it.startsWith("Uber: 3 avisos de mudança de tela") })
+        assertEquals(2, parado.count { " Uber | texto: janelas 1 de 3, 0 pedaços | imagem: " in it })
+        assertTrue(parado.any { "imagem: 0 linhas | NÃO reconhecida | 2 vezes" in it })
+        assertTrue(Rastro.linhas(contexto, servicoDesde = 1_000).first().startsWith("O serviço de leitura está rodando desde"))
+        assertEquals(1, Rastro.linhas(contexto, null, quantosPassos = 1).count { " Uber | texto: " in it })
+
+        // Sem nenhuma leitura guardada, o texto compartilhado ainda leva o aparelho e o rastro.
+        val texto = Diagnostico.texto(emptyList(), "0.2.1", "Marca Modelo, Android 15 (API 35)", parado)
+        assertTrue("Aparelho: Marca Modelo, Android 15 (API 35)" in texto)
+        assertTrue("Uber: 3 avisos de mudança de tela" in texto)
+        assertTrue("Nenhuma tela com cara de oferta foi guardada." in texto)
+
+        Rastro.apagar(contexto)
+        assertTrue(Rastro.vazio(contexto))
+    }
+
+    @Test fun `da captura so se le o pedaco do aplicativo de corrida`() {
+        assertEquals(Rect(0, 0, 1080, 2400), areaDeLeitura(1080, 2400, null))
+        assertEquals(Rect(0, 600, 1080, 2400), areaDeLeitura(1080, 2400, Rect(0, 600, 1080, 2600)))
+        // O botão flutuante por cima de outro aplicativo: nada a ler, em vez da tela inteira.
+        assertNull(areaDeLeitura(1080, 2400, Rect(900, 1000, 1060, 1160)))
+        assertNull(areaDeLeitura(1080, 2400, Rect(2000, 3000, 2500, 3500)))
     }
 
     private val arquivoDeGastos get() = File(contexto.filesDir, "gastos.json")

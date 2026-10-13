@@ -10,15 +10,21 @@ object LeitorDeTela {
     private const val PROFUNDIDADE_MAXIMA = 60
     private const val FRAGMENTOS_NO_MAXIMO = 600
 
-    /** `area` é o pedaço da tela ocupado pelo aplicativo; nulo quando o Android não informa. */
-    class Tela(val fragmentos: List<Fragmento>, val area: Rect?)
+    /**
+     * `area` é o pedaço da tela ocupado pelo aplicativo; nulo quando o Android não informa.
+     * `janelas` são as do aplicativo de corrida e `naTela` todas as que o Android listou: servem
+     * ao rastro, para saber se o aplicativo estava mesmo à vista da acessibilidade.
+     */
+    class Tela(val fragmentos: List<Fragmento>, val area: Rect?, val janelas: Int = 0, val naTela: Int = 0)
 
     fun ler(servico: AccessibilityService, pacote: String): Tela {
         val raizes = mutableListOf<AccessibilityNodeInfo>()
         var area: Rect? = null
+        var naTela = 0
         try {
             // A oferta pode vir numa janela à parte, por cima de outro aplicativo.
             for (janela in servico.windows) {
+                naTela++
                 val raiz = janela.root ?: continue
                 if (raiz.packageName?.toString() != pacote) continue
                 raizes += raiz
@@ -31,7 +37,23 @@ object LeitorDeTela {
         if (raizes.isEmpty()) {
             servico.rootInActiveWindow?.takeIf { it.packageName?.toString() == pacote }?.let(raizes::add)
         }
-        return Tela(raizes.flatMap(::fragmentos), area)
+        return Tela(raizes.flatMap(::fragmentos), area, raizes.size, naTela)
+    }
+
+    /** Qual dos aplicativos de `pacotes` tem janela na tela agora, e quantas janelas o Android listou. */
+    fun aVista(servico: AccessibilityService, pacotes: Set<String>): Pair<String?, Int> {
+        var naTela = 0
+        var achado: String? = null
+        try {
+            for (janela in servico.windows) {
+                naTela++
+                val pacote = janela.root?.packageName?.toString() ?: continue
+                if (achado == null && pacote in pacotes) achado = pacote
+            }
+        } catch (_: Exception) {
+            // Sem a lista de janelas, só dá para dizer que não achou.
+        }
+        return achado to naTela
     }
 
     fun fragmentos(raiz: AccessibilityNodeInfo): List<Fragmento> =

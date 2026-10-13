@@ -2,6 +2,7 @@ package app.valeacorrida.ui
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.FilterChip
@@ -17,6 +18,8 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import app.valeacorrida.BuildConfig
 import app.valeacorrida.Diagnostico
 import app.valeacorrida.Posicao
+import app.valeacorrida.Rastro
+import app.valeacorrida.leitura.ServicoVivo
 
 const val ENDERECO_DO_PROJETO = "https://github.com/fabrinygabrielrc-eng/vale-a-corrida"
 
@@ -24,8 +27,13 @@ const val ENDERECO_DO_PROJETO = "https://github.com/fabrinygabrielrc-eng/vale-a-
 fun TelaMais(estado: Estado) {
     val contexto = LocalContext.current
     var leituras by remember { mutableStateOf(Diagnostico.listar(contexto)) }
+    // Na tela vai o resumo do rastro: o serviço, os avisos e a última leitura. O resto sai no texto compartilhado.
+    var rastro by remember { mutableStateOf(Rastro.linhas(contexto, ServicoVivo.desde, quantosPassos = 1)) }
+    var temRastro by remember { mutableStateOf(!Rastro.vazio(contexto)) }
     LifecycleResumeEffect(Unit) {
         leituras = Diagnostico.listar(contexto)
+        rastro = Rastro.linhas(contexto, ServicoVivo.desde, quantosPassos = 1)
+        temRastro = !Rastro.vazio(contexto)
         onPauseOrDispose { }
     }
 
@@ -57,7 +65,7 @@ fun TelaMais(estado: Estado) {
                 "Guardar as últimas leituras",
                 estado.guardarLeituras,
                 estado::mudarGuardarLeituras,
-                apoio = "Ficam só neste aparelho. Com elas dá para avisar o projeto e consertar o leitor.",
+                apoio = "Ficam só neste aparelho. Com elas dá para avisar o projeto e consertar o leitor. Ligada, o Vale a Corrida também anota o caminho de cada leitura e confere a tela de 3 em 3 segundos, o que gasta mais bateria.",
             )
             Apoio(
                 when (leituras.size) {
@@ -66,19 +74,27 @@ fun TelaMais(estado: Estado) {
                     else -> "${leituras.size} leituras guardadas."
                 },
             )
-            if (leituras.isNotEmpty()) {
+            if (estado.guardarLeituras || temRastro) {
+                Apoio("O caminho da leitura, sem o que estava escrito na tela:")
+                for (linha in rastro) Apoio(linha)
+            }
+            if (leituras.isNotEmpty() || temRastro) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     BotaoPrincipal("Compartilhar", {
-                        val texto = Diagnostico.texto(leituras, BuildConfig.VERSION_NAME)
+                        val aparelho = "${Build.MANUFACTURER} ${Build.MODEL}, Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})"
+                        val texto = Diagnostico.texto(leituras, BuildConfig.VERSION_NAME, aparelho, Rastro.linhas(contexto, ServicoVivo.desde))
                         val envio = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, texto)
                         contexto.abrir(Intent.createChooser(envio, "Compartilhar as leituras"))
                     })
                     BotaoDeTexto("Apagar", {
                         Diagnostico.apagar(contexto)
+                        Rastro.apagar(contexto)
                         leituras = emptyList()
+                        rastro = Rastro.linhas(contexto, ServicoVivo.desde, quantosPassos = 1)
+                        temRastro = false
                     })
                 }
-                Apoio("O texto traz o que estava na tela, inclusive endereços. Confira antes de enviar.")
+                Apoio("As leituras guardadas trazem o que estava na tela, inclusive endereços. Confira antes de enviar.")
             }
         }
 

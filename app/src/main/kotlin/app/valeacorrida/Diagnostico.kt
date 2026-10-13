@@ -48,10 +48,23 @@ object Diagnostico {
         arquivo(contexto).delete()
     }
 
-    /** O texto que a pessoa compartilha. */
-    fun texto(leituras: List<Leitura>, versao: String): String = buildString {
+    /**
+     * O texto que a pessoa compartilha. `aparelho` e `rastro` vêm antes das leituras: quando o
+     * cartão não aparece e nada foi guardado, é o rastro que diz em que ponto a oferta se perdeu.
+     */
+    fun texto(leituras: List<Leitura>, versao: String, aparelho: String = "", rastro: List<String> = emptyList()): String = buildString {
         appendLine("Vale a Corrida $versao - leituras para diagnóstico")
         appendLine("Antes de enviar, apague endereços e nomes que não queira mostrar.")
+        if (aparelho.isNotEmpty()) appendLine("Aparelho: $aparelho")
+        if (rastro.isNotEmpty()) {
+            appendLine()
+            appendLine("Rastro (o caminho de cada leitura, sem o que estava escrito na tela)")
+            rastro.forEach(::appendLine)
+        }
+        if (leituras.isEmpty()) {
+            appendLine()
+            appendLine("Nenhuma tela com cara de oferta foi guardada.")
+        }
         val hora = SimpleDateFormat("dd/MM HH:mm:ss", Locale.forLanguageTag("pt-BR"))
         for (leitura in leituras) {
             appendLine()

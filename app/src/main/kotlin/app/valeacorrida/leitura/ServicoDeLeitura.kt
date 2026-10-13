@@ -1,6 +1,7 @@
 package app.valeacorrida.leitura
 
 import android.accessibilityservice.AccessibilityService
+import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -16,6 +17,7 @@ import android.view.accessibility.AccessibilityEvent
 import androidx.annotation.RequiresApi
 import app.valeacorrida.Diagnostico
 import app.valeacorrida.Preferencias
+import app.valeacorrida.Rastro
 import app.valeacorrida.nucleo.Avaliador
 import app.valeacorrida.nucleo.Fragmento
 import app.valeacorrida.nucleo.LeitorDeOferta
@@ -47,6 +49,13 @@ class ServicoDeLeitura : AccessibilityService() {
     private var ultimoAviso = 0L
     private var leiturasSemOferta = 0
 
+    /** "Guardar as últimas leituras" está ligado: escreve o rastro e faz a ronda. */
+    private var guardando = false
+    private var rondando = false
+
+    /** A leitura da vez foi puxada pela ronda, sem aviso do aplicativo de corrida. */
+    private var semAviso = false
+
     /**
      * Aplicativos em que o texto da acessibilidade já entregou uma oferta. Neles a imagem da tela
      * só é lida de vez em quando, para o caso de algum tipo de oferta vir sem texto.
@@ -57,8 +66,19 @@ class ServicoDeLeitura : AccessibilityService() {
     private val aoMudarPreferencias = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> aplicarPreferencias() }
     private val lerAgora = Runnable(::ler)
     private val tirarCartao = Runnable { sobreposicao.esconder() }
+    private val rondar = object : Runnable {
+        override fun run() {
+            if (!guardando) {
+                rondando = false
+                return
+            }
+            conferirSemAviso()
+            principal.postDelayed(this, RONDA_MS)
+        }
+    }
 
     override fun onServiceConnected() {
+        ServicoVivo.desde = System.currentTimeMillis()
         preferencias = Preferencias(this)
         sobreposicao = Sobreposicao(this)
         preferencias.escutar(aoMudarPreferencias)
@@ -66,6 +86,14 @@ class ServicoDeLeitura : AccessibilityService() {
     }
 
     private fun aplicarPreferencias() {
+        guardando = preferencias.guardarLeituras
+        if (guardando) {
+            ServicoVivo.desde?.let { Rastro.servicoLigou(this, it) }
+            if (!rondando) {
+                rondando = true
+                principal.postDelayed(rondar, RONDA_MS)
+            }
+        }
         // O próprio Vale a Corrida entra na lista por causa do simulador.
         pacotes = preferencias.acompanhados.flatMap { it.pacotes }.toSet() + packageName
         serviceInfo = serviceInfo?.apply { packageNames = pacotes.toTypedArray() } ?: return
@@ -75,16 +103,30 @@ class ServicoDeLeitura : AccessibilityService() {
         val pacote = evento?.packageName?.toString() ?: return
         if (pacote !in pacotes) return
         if (pacote == packageName && !Simulador.naTela) return
+        if (guardando && pacote != packageName) {
+            Rastro.aviso(this, Origem.doPacote(pacote)?.rotulo ?: pacote, System.currentTimeMillis())
+        }
         pacoteDaVez = pacote
+        semAviso = false
         ultimoAviso = SystemClock.uptimeMillis()
         marcarLeitura()
     }
 
     override fun onInterrupt() = Unit
 
+    override fun onUnbind(intent: Intent?): Boolean {
+        ServicoVivo.desde = null
+        if (guardando) Rastro.gravar(this)
+        return super.onUnbind(intent)
+    }
+
     override fun onDestroy() {
+        ServicoVivo.desde = null
         principal.removeCallbacksAndMessages(null)
-        if (::preferencias.isInitialized) preferencias.pararDeEscutar(aoMudarPreferencias)
+        if (::preferencias.isInitialized) {
+            preferencias.pararDeEscutar(aoMudarPreferencias)
+            if (guardando) Rastro.gravar(this)
+        }
         if (::sobreposicao.isInitialized) sobreposicao.esconder()
         leitorDeImagem?.fechar()
         emSegundoPlano.shutdown()
@@ -99,6 +141,26 @@ class ServicoDeLeitura : AccessibilityService() {
         leituraMarcada = true
         val espera = (ultimaLeitura + INTERVALO_MS - SystemClock.uptimeMillis()).coerceAtLeast(ASSENTAR_MS)
         principal.postDelayed(lerAgora, espera)
+    }
+
+    /**
+     * A ronda, só com "Guardar as últimas leituras" ligado: se o aplicativo de corrida está na tela
+     * e ficou calado, lê por conta própria. Sem ela, um aplicativo que não avisa as mudanças de tela
+     * nunca seria lido, e o rastro não teria como mostrar isso.
+     */
+    private fun conferirSemAviso() {
+        if (leituraMarcada || SystemClock.uptimeMillis() - ultimoAviso < RONDA_MS) return
+        val (pacote, naTela) = LeitorDeTela.aVista(this, pacotes - packageName)
+        if (pacote == null) {
+            Rastro.passo(
+                this,
+                Rastro.Passo(System.currentTimeMillis(), "Ronda", "nenhuma janela de aplicativo de corrida entre $naTela na tela", "não tentou", false),
+            )
+            return
+        }
+        pacoteDaVez = pacote
+        semAviso = true
+        marcarLeitura()
     }
 
     private fun ler() {
@@ -117,39 +179,57 @@ class ServicoDeLeitura : AccessibilityService() {
         val aVista = tela.area != null || tela.fragmentos.isNotEmpty() ||
             SystemClock.uptimeMillis() - ultimoAviso < AVISO_RECENTE_MS
         val trechos = Linhas.agrupar(tela.fragmentos)
+        val lido = if (guardando) {
+            (if (semAviso) "sem aviso, " else "") +
+                "janelas ${tela.janelas} de ${tela.naTela}, ${tela.fragmentos.size} pedaços${marcas(trechos)}"
+        } else {
+            ""
+        }
         val oferta = LeitorDeOferta.ler(trechos, origem)
-        when {
-            oferta != null -> {
-                // O simulador fica de fora: nele a pessoa alterna entre texto e imagem para testar.
-                if (origem != Origem.SIMULADOR) bastaOTexto += pacote
-                concluir(origem, oferta, trechos, "texto")
-            }
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && aVista && querLerImagem(pacote) ->
-                lerPorImagem(origem, tela.area, trechos)
-            else -> concluir(origem, null, trechos, "texto")
+        if (oferta != null) {
+            // O simulador fica de fora: nele a pessoa alterna entre texto e imagem para testar.
+            if (origem != Origem.SIMULADOR) bastaOTexto += pacote
+            concluir(origem, oferta, trechos, "texto", lido, "não precisou")
+            return
+        }
+        val semImagem = porQueNaoLerImagem(pacote, aVista)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && semImagem == null) {
+            lerPorImagem(origem, tela.area, trechos, lido)
+        } else {
+            concluir(origem, null, trechos, "texto", lido, semImagem ?: "não tentou")
         }
     }
 
-    private fun querLerImagem(pacote: String): Boolean {
-        if (!preferencias.lerPorImagem) return false
-        if (pacote !in bastaOTexto) return true
+    /** Nulo quando é para ler a imagem da tela; senão, o motivo de não ler, para o rastro. */
+    private fun porQueNaoLerImagem(pacote: String, aVista: Boolean): String? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return "este Android não captura a tela (anterior ao 11)"
+        if (!preferencias.lerPorImagem) return "desligada na aba Mais"
+        if (!aVista) return "o aplicativo não estava à vista"
+        if (pacote !in bastaOTexto) return null
         leiturasSemImagem = (leiturasSemImagem + 1) % DE_VEZ_EM_QUANDO
-        return leiturasSemImagem == 0
+        return if (leiturasSemImagem == 0) null else "pulada, o texto já tinha bastado antes"
+    }
+
+    /** Se as linhas têm valor em reais e tempo ou distância. Não diz o que está escrito nelas. */
+    private fun marcas(trechos: List<Trecho>): String {
+        if (!guardando || trechos.isEmpty()) return ""
+        fun simNao(tem: Boolean) = if (tem) "sim" else "não"
+        return " (valor ${simNao(LeitorDeOferta.temValor(trechos))}, trecho ${simNao(LeitorDeOferta.temTrecho(trechos))})"
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    private fun lerPorImagem(origem: Origem, area: Rect?, trechosDoTexto: List<Trecho>) {
+    private fun lerPorImagem(origem: Origem, area: Rect?, trechosDoTexto: List<Trecho>, lido: String) {
         if (lendoImagem) return
         lendoImagem = true
         val cartao = sobreposicao.area()
 
-        fun terminar(fragmentos: List<Fragmento>?) = principal.post {
+        fun terminar(fragmentos: List<Fragmento>?, falha: String) = principal.post {
             lendoImagem = false
             val trechos = fragmentos?.let(Linhas::agrupar)
             if (trechos == null) {
-                concluir(origem, null, trechosDoTexto, "texto")
+                concluir(origem, null, trechosDoTexto, "texto", lido, falha)
             } else {
-                concluir(origem, LeitorDeOferta.ler(trechos, origem), trechos, "imagem")
+                concluir(origem, LeitorDeOferta.ler(trechos, origem), trechos, "imagem", lido, "${trechos.size} linhas${marcas(trechos)}")
             }
         }
 
@@ -162,24 +242,24 @@ class ServicoDeLeitura : AccessibilityService() {
                         null
                     }
                     if (imagem == null) {
-                        terminar(null)
+                        terminar(null, "a captura veio sem área do aplicativo para ler")
                         return
                     }
                     val leitor = leitorDeImagem ?: LeitorDeImagem().also { leitorDeImagem = it }
                     leitor.ler(imagem) { fragmentos ->
                         imagem.recycle()
-                        terminar(fragmentos)
+                        terminar(fragmentos, "o reconhecimento do texto falhou")
                     }
                 }
 
                 override fun onFailure(codigo: Int) {
-                    terminar(null)
+                    terminar(null, "o Android recusou a captura (código $codigo)")
                 }
             })
         } catch (_: Exception) {
             // O aparelho não deixou capturar a tela. Segue só com o texto.
             lendoImagem = false
-            concluir(origem, null, trechosDoTexto, "texto")
+            concluir(origem, null, trechosDoTexto, "texto", lido, "o aparelho não deixou capturar a tela")
         }
     }
 
@@ -196,10 +276,12 @@ class ServicoDeLeitura : AccessibilityService() {
         }
         if (inteira == null) return null
 
+        val recorte = areaDeLeitura(inteira.width, inteira.height, area)
+        if (recorte == null) {
+            inteira.recycle()
+            return null
+        }
         if (cartao != null) Canvas(inteira).drawRect(cartao, Paint().apply { color = Color.BLACK })
-
-        val recorte = Rect(0, 0, inteira.width, inteira.height)
-        if (area == null || !recorte.intersect(area) || recorte.width() < 200 || recorte.height() < 200) return inteira
         if (recorte.width() == inteira.width && recorte.height() == inteira.height) return inteira
         return Bitmap.createBitmap(inteira, recorte.left, recorte.top, recorte.width(), recorte.height())
             .also { if (it !== inteira) inteira.recycle() }
@@ -207,8 +289,8 @@ class ServicoDeLeitura : AccessibilityService() {
 
     // ---------------------------------------------------------------- resultado
 
-    private fun concluir(origem: Origem, oferta: Oferta?, trechos: List<Trecho>, modo: String) {
-        registrar(origem, oferta, trechos, modo)
+    private fun concluir(origem: Origem, oferta: Oferta?, trechos: List<Trecho>, modo: String, lido: String, imagem: String) {
+        registrar(origem, oferta, trechos, modo, lido, imagem)
         principal.removeCallbacks(tirarCartao)
         if (oferta == null) {
             // Uma leitura falha no meio de uma animação não derruba o cartão; duas seguidas, sim.
@@ -228,15 +310,15 @@ class ServicoDeLeitura : AccessibilityService() {
         marcarLeitura()
     }
 
-    private fun registrar(origem: Origem, oferta: Oferta?, trechos: List<Trecho>, modo: String) {
-        if (!preferencias.guardarLeituras) return
-        // Só interessa a tela que tem cara de oferta: a reconhecida, e a que tem valor em reais
-        // junto com tempo ou distância. A tela parada, só com os ganhos do dia, não entra.
-        if (oferta == null) {
-            val temValor = trechos.any { TEM_VALOR.containsMatchIn(it.texto) }
-            val temTrecho = trechos.any { TEM_TRECHO.containsMatchIn(it.texto) }
-            if (!temValor || !temTrecho) return
+    private fun registrar(origem: Origem, oferta: Oferta?, trechos: List<Trecho>, modo: String, lido: String, imagem: String) {
+        if (!guardando) return
+        // O simulador não entra no rastro: o que se quer saber é o caminho da oferta de verdade.
+        if (origem != Origem.SIMULADOR) {
+            Rastro.passo(this, Rastro.Passo(System.currentTimeMillis(), origem.rotulo, lido, imagem, oferta != null))
         }
+        // O texto da tela só é guardado quando ela tem cara de oferta: a reconhecida, e a que tem
+        // valor em reais junto com tempo ou distância. A tela parada, só com os ganhos do dia, não entra.
+        if (oferta == null && !LeitorDeOferta.pareceOferta(trechos)) return
         Diagnostico.registrar(
             this,
             Diagnostico.Leitura(System.currentTimeMillis(), origem.rotulo, modo, oferta != null, trechos.map { it.texto }),
@@ -259,16 +341,31 @@ class ServicoDeLeitura : AccessibilityService() {
         /** Onde o texto já bastou, lê a imagem uma vez a cada tantas leituras sem oferta. */
         const val DE_VEZ_EM_QUANDO = 5
 
-        /** "6 min", "2.1 km". */
-        val TEM_TRECHO = Regex("\\d\\s?(?:min|km)", RegexOption.IGNORE_CASE)
-
-        /** "R$ 12", e também "RS 12" e "R5 12", como a leitura por imagem às vezes entrega. */
-        val TEM_VALOR = Regex("R\\s?[\$S5]\\s?\\d")
+        /** De quanto em quanto tempo a ronda confere a tela, quando o aplicativo de corrida não avisa nada. */
+        const val RONDA_MS = 3_000L
     }
+}
+
+/**
+ * Que pedaço da captura pode ser lido: só o que o aplicativo de corrida ocupa (`area`). Sem essa
+ * informação, a tela inteira. Devolve nulo quando o pedaço é pequeno demais para ter uma oferta,
+ * como o botão flutuante por cima de outro aplicativo: melhor não ler nada do que ler a tela alheia.
+ */
+internal fun areaDeLeitura(largura: Int, altura: Int, area: Rect?): Rect? {
+    val recorte = Rect(0, 0, largura, altura)
+    if (area == null) return recorte
+    if (!recorte.intersect(area) || recorte.width() < 200 || recorte.height() < 200) return null
+    return recorte
 }
 
 /** A tela de teste do próprio aplicativo. O serviço só lê o Vale a Corrida quando ela está aberta. */
 object Simulador {
     @Volatile
     var naTela: Boolean = false
+}
+
+/** Desde quando o serviço de leitura está rodando neste momento; nulo quando o Android o desligou. */
+object ServicoVivo {
+    @Volatile
+    var desde: Long? = null
 }
