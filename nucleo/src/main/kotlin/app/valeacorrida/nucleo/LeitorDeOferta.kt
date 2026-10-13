@@ -23,6 +23,28 @@ object LeitorDeOferta {
         return oferta.takeIf(::plausivel)
     }
 
+    // ---------------------------------------------------------------- cara de oferta
+
+    // "r$ 12", e também "rs 12" e "r5 12", como a leitura por imagem às vezes entrega.
+    private val TEM_VALOR = Regex("(?<![a-z0-9])(?:r\\$|rs|r5)\\s?\\d")
+    private val TEM_TRECHO = Regex("\\d\\s?(?:min|km)")
+
+    /** Tem um valor em reais na tela, seja ou não o de uma corrida. */
+    fun temValor(trechos: List<Trecho>): Boolean = trechos.any { TEM_VALOR.containsMatchIn(normalizar(it.texto)) }
+
+    /** Tem tempo ou distância na tela ("6 min", "2,1 km"). */
+    fun temTrecho(trechos: List<Trecho>): Boolean = trechos.any { TEM_TRECHO.containsMatchIn(normalizar(it.texto)) }
+
+    /**
+     * A tela tem um valor em reais junto com tempo ou distância, mesmo que o leitor não tenha
+     * montado a oferta. É o que decide se uma leitura não reconhecida vale ser guardada para
+     * diagnóstico: a tela parada, só com os ganhos do dia, não entra.
+     *
+     * Olha o texto já normalizado: o Android escreve "R$" e o número com um espaço que não
+     * quebra linha no meio, e sem normalizar essa tela passava por "sem valor".
+     */
+    fun pareceOferta(trechos: List<Trecho>): Boolean = temValor(trechos) && temTrecho(trechos)
+
     // ---------------------------------------------------------------- texto
 
     private class Linha(val original: String, val texto: String, val altura: Int)

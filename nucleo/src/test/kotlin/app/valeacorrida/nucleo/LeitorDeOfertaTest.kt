@@ -200,6 +200,28 @@ class LeitorDeOfertaTest {
         assertNull(ler("R$ 0,50", "6 min (2.1 km)", "14 min (7.4 km)"))
         assertNull(ler("R$ 12,48", "Viagem de 14 min (7400 km)"))
     }
+
+    // ------------------------------------------------------------ cara de oferta (diagnóstico)
+
+    private fun parece(vararg linhas: String) = LeitorDeOferta.pareceOferta(linhas.map { Trecho(it) })
+
+    @Test fun `tela com valor e trecho tem cara de oferta mesmo sem ser reconhecida`() {
+        assertEquals(true, parece("R$ 12,48", "linha que o leitor não entendeu", "a 6 min de você"))
+        assertEquals(true, parece("RS 12,48", "2.1 km"))
+    }
+
+    @Test fun `o espaco que o Android poe entre o cifrao e o numero nao esconde o valor`() {
+        // É como o Android escreve dinheiro em português: "R$", um espaço que não quebra linha, o número.
+        assertEquals(true, parece("R$ 12,48", "6 min (2,1 km) de distância"))
+        ler("R$ 12,48", "6 min (2,1 km) de distância", "Viagem de 14 min (7,4 km)")
+            .confere(12.48, Percurso(6.0, 2.1), Percurso(14.0, 7.4))
+    }
+
+    @Test fun `tela parada nao tem cara de oferta`() {
+        assertEquals(false, parece("R$ 152,30", "Você está online", "Procurando viagens"))
+        assertEquals(false, parece("6 min (2.1 km) de distância"))
+        assertEquals(false, parece())
+    }
 }
 
 class LinhasTest {
