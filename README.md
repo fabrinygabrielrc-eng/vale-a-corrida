@@ -24,7 +24,7 @@ pessoa conferir o que ele faz com a permissão que recebe.
 
 Versão 0.2. O que foi conferido e o que não foi:
 
-- **Conferido:** o leitor de ofertas, as contas e o relatório de gastos, com 76 testes
+- **Conferido:** o leitor de ofertas, as contas e o relatório de gastos, com 82 testes
   automáticos; as telas, desenhadas em computador e olhadas uma a uma; o APK, que compila, sai
   assinado e sem permissão de internet.
 - **Conferido com corrida de verdade (outubro de 2026):** a Uber, num Xiaomi com Android 15. O
@@ -35,6 +35,10 @@ Versão 0.2. O que foi conferido e o que não foi:
 - **O que dava errado até a 0.2.1:** o cartão aparecia uma vez e não voltava mais. O Android às
   vezes não responde ao pedido de captura da tela, e o serviço ficava esperando essa resposta
   para sempre. A 0.2.2 dá a captura por perdida depois de um prazo e tenta de novo.
+- **O que dava errado até a 0.2.2:** a leitura parava e o aplicativo continuava dizendo "ligada".
+  Quando o celular fecha o aplicativo por conta própria (no Xiaomi, o "limpar tudo" dos
+  recentes), o Android desliga a leitura e não a religa sozinho. A 0.2.3 avisa "A leitura parou",
+  leva para religar e mostra como travar o aplicativo para o celular não fechá-lo de novo.
 
 Se você instalar e o cartão não aparecer, isso ainda pode acontecer nesta fase, e é exatamente o
 aviso que o projeto precisa: veja [Como ajudar](#como-ajudar).
@@ -82,7 +86,7 @@ tela de outro.
 
 Se o Android barrar a instalação: no Brasil, a proteção do Google costuma recusar aplicativo que
 usa acessibilidade quando o arquivo vem do navegador ou de uma mensagem. Nesse caso, instale pelo
-computador, com o celular no cabo e a depuração USB ligada: `adb install vale-a-corrida-0.2.2.apk`.
+computador, com o celular no cabo e a depuração USB ligada: `adb install vale-a-corrida-0.2.3.apk`.
 
 ## Antes de usar
 

@@ -74,13 +74,20 @@ Uber, outubro de 2026, num Xiaomi com Android 15 (HyperOS 3), com o celular no c
   espaço que não quebra linha.
 - A Uber avisa a mudança de tela quando a oferta entra: foi o aviso que puxou a primeira leitura
   nas três ofertas acompanhadas. Com a oferta parada na tela os avisos continuam, mais raros.
+- **O celular fecha o aplicativo e o Android não religa a leitura.** Em 14/10 o "limpar tudo" do
+  HyperOS (`OneKeyClean` em `adb shell dumpsys activity exit-info app.valeacorrida`) matou o
+  processo com o serviço rodando. O Android pôs o serviço em `Crashed services` (`adb shell
+  dumpsys accessibility`) e não o religou por nove dias; só desligar e ligar em Acessibilidade, ou
+  reinstalar, tira essa marca. A configuração continua dizendo "ligado", por isso a aba Início
+  compara a configuração com `ServicoVivo` e mostra `Leitura.PARADA`.
 
 Não conferido: a 99 e o inDrive, e a Uber em outros aparelhos e versões do Android. Os formatos
 desses testes foram escritos de memória. Não trate esses formatos como fato: quando chegar uma
 leitura real, ela vale mais que o teste antigo.
 
 Quando o cartão não aparecer para alguém, comece pelo caminho da leitura, não pelo leitor: com
-cabo, o `Registro`; sem cabo, o texto do **rastro** (aba Mais > Compartilhar). Os dois dizem se o
+cabo, primeiro `dumpsys accessibility` (o serviço está em `Bound` ou em `Crashed`?) e depois o
+`Registro`; sem cabo, o texto do **rastro** (aba Mais > Compartilhar). Os dois dizem se o
 serviço estava rodando, se o aplicativo avisa as mudanças de tela, quanto texto chegou e o que a
 captura devolveu.
 
