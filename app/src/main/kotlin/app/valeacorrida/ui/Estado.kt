@@ -10,6 +10,7 @@ import app.valeacorrida.LivroDeGastos
 import app.valeacorrida.Posicao
 import app.valeacorrida.Preferencias
 import app.valeacorrida.leitura.ServicoDeLeitura
+import app.valeacorrida.leitura.ServicoVivo
 import app.valeacorrida.nucleo.Categoria
 import app.valeacorrida.nucleo.Criterios
 import app.valeacorrida.nucleo.Origem
@@ -36,6 +37,14 @@ class Estado(
 
     /** Se a leitura está ligada nas configurações de acessibilidade do Android. */
     var leituraLigada by mutableStateOf(false)
+
+    /** O que a pessoa ligou nas configurações, junto com o que o Android está de fato rodando. */
+    val leitura: Leitura
+        get() = when {
+            ServicoVivo.desde != null -> Leitura.RODANDO
+            leituraLigada -> Leitura.PARADA
+            else -> Leitura.DESLIGADA
+        }
 
     var gastos by mutableStateOf(livro.listar())
         private set
@@ -126,3 +135,10 @@ class Estado(
         }
     }
 }
+
+/**
+ * Em que pé está a leitura. PARADA é a armadilha: ligada nas configurações, mas sem o serviço
+ * rodando. Acontece quando o celular fecha o aplicativo por conta própria (no Xiaomi, o "limpar
+ * tudo" dos recentes): o Android marca o serviço como travado e não o religa sozinho.
+ */
+enum class Leitura { DESLIGADA, RODANDO, PARADA }

@@ -15,6 +15,9 @@ import android.os.SystemClock
 import android.view.Display
 import android.view.accessibility.AccessibilityEvent
 import androidx.annotation.RequiresApi
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import app.valeacorrida.Diagnostico
 import app.valeacorrida.Preferencias
 import app.valeacorrida.Rastro
@@ -428,8 +431,10 @@ object Simulador {
     var naTela: Boolean = false
 }
 
-/** Desde quando o serviço de leitura está rodando neste momento; nulo quando o Android o desligou. */
+/**
+ * Desde quando o serviço de leitura está rodando neste momento; nulo quando o Android o desligou.
+ * É estado do Compose para a aba Início mudar sozinha quando o serviço liga ou cai.
+ */
 object ServicoVivo {
-    @Volatile
-    var desde: Long? = null
+    var desde: Long? by mutableStateOf(null)
 }

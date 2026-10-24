@@ -73,8 +73,10 @@ fun TelaSimulador(estado: Estado) {
     val esperado = Avaliador.avaliar(oferta, estado.criterios)
 
     Pagina("Simulador") {
-        if (!estado.leituraLigada) {
-            Apoio("A leitura está desligada. O cartão só aparece por cima com ela ligada, na aba Início.")
+        when (estado.leitura) {
+            Leitura.DESLIGADA -> Apoio("A leitura está desligada. O cartão só aparece por cima com ela ligada, na aba Início.")
+            Leitura.PARADA -> Apoio("A leitura parou: o celular fechou o Vale a Corrida. Religue na aba Início para o cartão aparecer por cima.")
+            Leitura.RODANDO -> Unit
         }
 
         OfertaDeMentira(estilo, oferta, semTexto)

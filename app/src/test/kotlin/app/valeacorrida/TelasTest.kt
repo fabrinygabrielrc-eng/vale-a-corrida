@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.provider.Settings
 import androidx.compose.runtime.Composable
 import app.valeacorrida.leitura.ServicoDeLeitura
+import app.valeacorrida.leitura.ServicoVivo
 import app.valeacorrida.nucleo.Categoria
 import app.valeacorrida.nucleo.Origem
 import app.valeacorrida.ui.Aba
@@ -28,8 +29,11 @@ import java.time.LocalDate
 @Config(sdk = [34], qualifiers = CELULAR)
 class TelasTest {
 
-    /** A tela pergunta ao Android se a leitura está ligada; aqui o teste responde por ele. */
-    private fun estado(ligada: Boolean = false, comGastos: Boolean = false): Estado {
+    /**
+     * A tela pergunta ao Android se a leitura está ligada e se o serviço está rodando; aqui o
+     * teste responde por ele. Ligada e não rodando é a leitura que o celular parou.
+     */
+    private fun estado(ligada: Boolean = false, rodando: Boolean = ligada, comGastos: Boolean = false): Estado {
         val contexto = RuntimeEnvironment.getApplication()
         val servico = ComponentName(contexto, ServicoDeLeitura::class.java).flattenToString()
         Settings.Secure.putString(
@@ -37,6 +41,7 @@ class TelasTest {
             Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
             if (ligada) servico else "",
         )
+        ServicoVivo.desde = if (rodando) 0L else null
         val livro = LivroDeGastos(contexto)
         if (comGastos) anotarUmMes(livro)
         // O dia é fixo para as telas saírem iguais em qualquer data.
@@ -80,6 +85,11 @@ class TelasTest {
 
     @Config(qualifiers = COMPRIDA)
     @Test fun inicioInteira() = fotografar("inteira-inicio") { Aplicativo(estado(ligada = true, comGastos = true), Aba.INICIO) }
+
+    /** O que a aba Início mostra quando o celular fechou o aplicativo com a leitura ligada. */
+    @Test fun inicioParada() = fotografar("inicio-parada") { Aplicativo(estado(ligada = true, rodando = false), Aba.INICIO) }
+
+    @Test fun simuladorParada() = fotografar("simulador-parada") { Aplicativo(estado(ligada = true, rodando = false), Aba.SIMULADOR) }
 
     @Config(qualifiers = COMPRIDA)
     @Test fun valoresInteira() = fotografar("inteira-valores") { Aplicativo(estado(), Aba.VALORES) }

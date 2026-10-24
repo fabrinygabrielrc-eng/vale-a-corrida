@@ -35,14 +35,29 @@ fun TelaInicio(estado: Estado, aoAbrirSimulador: () -> Unit, aoAbrirGastos: () -
             }
         }
 
-        Bloco(if (estado.leituraLigada) "A leitura está ligada" else "A leitura está desligada") {
-            if (estado.leituraLigada) {
+        when (estado.leitura) {
+            Leitura.RODANDO -> Bloco("A leitura está ligada") {
                 Apoio("Abra a Uber ou a 99 e fique online. Quando chegar uma oferta, o cartão aparece por cima dela.")
                 BotaoSecundario("Testar no simulador", aoAbrirSimulador)
-            } else {
+            }
+            Leitura.PARADA -> Bloco("A leitura parou") {
+                Apoio("O celular fechou o Vale a Corrida por conta própria, para economizar bateria ou ao limpar os aplicativos abertos. Enquanto ela estiver parada, o cartão não aparece.")
+                BotaoPrincipal("Religar a leitura", { contexto.abrir(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) })
+                Apoio("Em Acessibilidade, desligue o Vale a Corrida e ligue de novo. O Android só volta a rodar a leitura assim.")
+            }
+            Leitura.DESLIGADA -> Bloco("A leitura está desligada") {
                 Apoio("Para ler a oferta, o Android pede que você ligue o Vale a Corrida em Acessibilidade. É a mesma permissão que os aplicativos pagos usam.")
                 BotaoPrincipal("Ligar a leitura", { contexto.abrir(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) })
                 Apoio("Se o Android disser que a configuração é restrita: abra os detalhes do aplicativo, toque nos três pontinhos no canto e escolha \"Permitir configurações restritas\". Acontece com todo aplicativo instalado fora da loja.")
+                BotaoDeTexto("Abrir os detalhes do aplicativo", { contexto.abrir(detalhesDoAplicativo(contexto)) })
+            }
+        }
+
+        // Com a leitura ligada, o que mais a derruba é o próprio celular fechando o aplicativo.
+        if (estado.leitura != Leitura.DESLIGADA) {
+            Bloco("Para a leitura não parar") {
+                Apoio("Alguns celulares, como os Xiaomi, fecham os aplicativos para economizar bateria, e a leitura vai junto.")
+                Apoio("1. Nos aplicativos recentes, segure o Vale a Corrida e toque no cadeado.\n2. Nos detalhes do aplicativo, deixe a bateria sem restrições e ligue a inicialização automática, se o celular tiver essa opção.")
                 BotaoDeTexto("Abrir os detalhes do aplicativo", { contexto.abrir(detalhesDoAplicativo(contexto)) })
             }
         }
